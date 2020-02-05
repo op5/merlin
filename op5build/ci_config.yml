@@ -1,3 +1,5 @@
+build:
+     exclude: ['el6/x86_64']
 vm-config: |
   {"numCPUs": 4}
 post:

@@ -205,7 +205,7 @@ def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
 
 def cmd_push(args):
     """\
-    --no-restart [--push=oconf,extras,bsm] [--dryrun] [<node1> <node2> <nodeN>]
+    --no-restart [--push=oconf,extras,bsm,merlinkey] [--dryrun] [<node1> <node2> <nodeN>]
     Sends object configuration to all peers and pollers, restarting
     those that receive a configuration update.
 
@@ -287,6 +287,9 @@ def cmd_push(args):
 
         if 'bsm' in push_items and os.path.isdir('/opt/synergy/etc/bps'):
             files_to_sync['/opt/synergy/etc/bps'] = '/opt/synergy/etc'
+
+        if 'merlinkey' in push_items and os.path.isfile('/opt/monitor/op5/merlin/key'):
+            files_to_sync['/opt/monitor/op5/merlin/key'] = '/opt/monitor/op5/merlin'
 
         sync_list.append(
             (node, ssh_user, ssh_key, files_to_sync, dryrun)

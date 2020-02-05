@@ -17,10 +17,10 @@ merlin_node **noc_table, **poller_table, **peer_table;
 
 static int num_selections;
 static node_selection *selection_table;
-unsigned char key[crypto_secretbox_KEYBYTES];
+unsigned char encryption_key[crypto_secretbox_KEYBYTES];
 bool sodium_init_done = false;
-void * encrypt_pkt(merlin_event * pkt);
-void * decrypt_pkt(merlin_event * pkt);
+int encrypt_pkt(merlin_event * pkt);
+int decrypt_pkt(merlin_event * pkt);
 
 static void node_log_info(const merlin_node *node, const merlin_nodeinfo *info)
 {
@@ -828,15 +828,17 @@ int node_recv(merlin_node *node)
 	return -1;
 }
 
-void * encrypt_pkt(merlin_event * pkt) {
+int encrypt_pkt(merlin_event * pkt) {
 	if (sodium_init_done == false) {
 		if (sodium_init() < 0) {
 			/* panic! the library couldn't be initialized, it is not safe to use */
 			lwarn("sodium_init failed\n");
+			return -1;
 		} else {
+			FILE *f;
 			sodium_init_done = true;
-			FILE *f = fopen("/opt/monitor/op5/merlin/key", "r");
-			fscanf(f, "%s", key);
+			f = fopen("/opt/monitor/op5/merlin/key", "r");
+			fscanf(f, "%s", encryption_key);
 			fclose(f);
 		}
 	}
@@ -853,26 +855,31 @@ void * encrypt_pkt(merlin_event * pkt) {
 
 	randombytes_buf(pkt->hdr.nonce, sizeof(pkt->hdr.nonce));
 
-	if (crypto_secretbox_detached(pkt->body, pkt->hdr.authtag, pkt->body, pkt->hdr.len, pkt->hdr.nonce, key) != 0) {
+	if (crypto_secretbox_detached((unsigned char *)pkt->body, pkt->hdr.authtag, (unsigned char *)pkt->body, pkt->hdr.len, pkt->hdr.nonce, encryption_key) != 0) {
 		lerr("could not encrypt msg!\n");
+		return -1;
 	}
+	return 0;
 }
 
-void * decrypt_pkt(merlin_event * pkt) {
+int decrypt_pkt(merlin_event * pkt) {
 	if (sodium_init_done == false) {
 		if (sodium_init() < 0) {
 			/* panic! the library couldn't be initialized, it is not safe to use */
 			lerr("sodium_init failed\n");
+			return -1;
 		} else {
+			FILE *f;
 			sodium_init_done = true;
-			FILE *f = fopen("/opt/monitor/op5/merlin/key", "r");
-			fscanf(f, "%s", key);
+			f = fopen("/opt/monitor/op5/merlin/key", "r");
+			fscanf(f, "%s", encryption_key);
 			fclose(f);
 		}
 	}
 
-	if (crypto_secretbox_open_detached(pkt->body, pkt->body, pkt->hdr.authtag, pkt->hdr.len, pkt->hdr.nonce, key) != 0) {
+	if (crypto_secretbox_open_detached((unsigned char *)pkt->body, (const unsigned char *)pkt->body, pkt->hdr.authtag, pkt->hdr.len, pkt->hdr.nonce, encryption_key) != 0) {
 			lerr("Encrypted message forged!\n");
+			return -1;
 	}
 	if (pkt->hdr.code == CTRL_ACTIVE) {
 		merlin_nodeinfo *info = (merlin_nodeinfo *)pkt->body;
@@ -883,6 +890,7 @@ void * decrypt_pkt(merlin_event * pkt) {
 		lwarn(" config mtime: %lu", info->last_cfg_change);
 		lwarn(" version: %d", info->version);
 	}
+	return 0;
 }
 
 /*
@@ -911,7 +919,9 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 	}
 
 	if (node->encrypted) {
-		encrypt_pkt(pkt);
+		if (encrypt_pkt(pkt) == -1) {
+			node_disconnect(node, "Failed to encrypt packet");
+		}
 	}
 
 	sent = io_send_all(node->sock, data, len);
@@ -919,6 +929,9 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 	// we decrypt the pkt again in case we need it again later
 	if (node->encrypted) {
 		decrypt_pkt(pkt);
+		if (encrypt_pkt(pkt) == -1) {
+			node_disconnect(node, "Failed to decrypt packet after sending");
+		}
 	}
 
 	/* success. Should be the normal case */
@@ -992,7 +1005,9 @@ merlin_event *node_get_event(merlin_node *node)
 
 
 	if (node->encrypted) {
-		decrypt_pkt(pkt);
+		if (decrypt_pkt(pkt) == -1) {
+			node_disconnect(node, "Failed to decrypt package from: %s", node->name);
+		}
 	}
 
 	/* debug log these transitions */
