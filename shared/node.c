@@ -10,11 +10,17 @@
 #include <string.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <sodium.h>
+#include <stdbool.h>
 
 merlin_node **noc_table, **poller_table, **peer_table;
 
 static int num_selections;
 static node_selection *selection_table;
+unsigned char key[crypto_secretbox_KEYBYTES];
+bool sodium_init_done = false;
+void * encrypt_pkt(merlin_event * pkt);
+void * decrypt_pkt(merlin_event * pkt);
 
 static void node_log_info(const merlin_node *node, const merlin_nodeinfo *info)
 {
@@ -460,6 +466,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 
 	/* some sane defaults */
 	node->data_timeout = pulse_interval * 2;
+	node->encrypted = false;
 
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
@@ -488,6 +495,15 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 		}
 		else if (!strcmp(v->key, "max_sync_attempts")) {
 			/* restricting max sync attempts is a terrible idea, don't do anything */
+		}
+		else if (!strcmp(v->key, "encrypted")) {
+			int value;
+			value=atoi(v->value);
+			if (value == 1) {
+				node->encrypted=true;
+			} else {
+				node->encrypted=false;
+			}
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
@@ -812,6 +828,63 @@ int node_recv(merlin_node *node)
 	return -1;
 }
 
+void * encrypt_pkt(merlin_event * pkt) {
+	if (sodium_init_done == false) {
+		if (sodium_init() < 0) {
+			/* panic! the library couldn't be initialized, it is not safe to use */
+			lwarn("sodium_init failed\n");
+		} else {
+			sodium_init_done = true;
+			FILE *f = fopen("/opt/monitor/op5/merlin/key", "r");
+			fscanf(f, "%s", key);
+			fclose(f);
+		}
+	}
+
+	if (pkt->hdr.code == CTRL_ACTIVE) {
+		merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
+		lwarn("ENCRYPTION:");
+		lwarn("   start time: %lu.%06lu",
+		       info->start.tv_sec, info->start.tv_usec);
+		lwarn("  config hash: %s", tohex(info->config_hash, 20));
+		lwarn(" config mtime: %lu", info->last_cfg_change);
+		lwarn(" version: %d", info->version);
+	}
+
+	randombytes_buf(pkt->hdr.nonce, sizeof(pkt->hdr.nonce));
+
+	if (crypto_secretbox_detached(pkt->body, pkt->hdr.authtag, pkt->body, pkt->hdr.len, pkt->hdr.nonce, key) != 0) {
+		lerr("could not encrypt msg!\n");
+	}
+}
+
+void * decrypt_pkt(merlin_event * pkt) {
+	if (sodium_init_done == false) {
+		if (sodium_init() < 0) {
+			/* panic! the library couldn't be initialized, it is not safe to use */
+			lerr("sodium_init failed\n");
+		} else {
+			sodium_init_done = true;
+			FILE *f = fopen("/opt/monitor/op5/merlin/key", "r");
+			fscanf(f, "%s", key);
+			fclose(f);
+		}
+	}
+
+	if (crypto_secretbox_open_detached(pkt->body, pkt->body, pkt->hdr.authtag, pkt->hdr.len, pkt->hdr.nonce, key) != 0) {
+			lerr("Encrypted message forged!\n");
+	}
+	if (pkt->hdr.code == CTRL_ACTIVE) {
+		merlin_nodeinfo *info = (merlin_nodeinfo *)pkt->body;
+		lwarn("DECRYPTION");
+		lwarn("   start time: %lu.%06lu",
+		       info->start.tv_sec, info->start.tv_usec);
+		lwarn("  config hash: %s", tohex(info->config_hash, 20));
+		lwarn(" config mtime: %lu", info->last_cfg_change);
+		lwarn(" version: %d", info->version);
+	}
+}
+
 /*
  * wraps io_send_all() and adds proper error handling when we run
  * into sending errors. It's up to the caller to poll the socket
@@ -827,6 +900,7 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 
 	if (len >= HDR_SIZE && pkt->hdr.type == CTRL_PACKET) {
 		ldebug("Sending %s to %s", ctrl_name(pkt->hdr.code), node->name);
+
 		if (pkt->hdr.code == CTRL_ACTIVE) {
 			merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
 			ldebug("   start time: %lu.%06lu",
@@ -836,7 +910,17 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 		}
 	}
 
+	if (node->encrypted) {
+		encrypt_pkt(pkt);
+	}
+
 	sent = io_send_all(node->sock, data, len);
+
+	// we decrypt the pkt again in case we need it again later
+	if (node->encrypted) {
+		decrypt_pkt(pkt);
+	}
+
 	/* success. Should be the normal case */
 	if (sent == (int)len) {
 		node->stats.bytes.sent += sent;
@@ -906,8 +990,14 @@ merlin_event *node_get_event(merlin_node *node)
 		return NULL;
 	}
 
+
+	if (node->encrypted) {
+		decrypt_pkt(pkt);
+	}
+
 	/* debug log these transitions */
 	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
+
 		ldebug("CTRLEVENT: Received CTRL_ACTIVE from %s node %s", node_type(node), node->name);
 		node_log_info(node, (merlin_nodeinfo *)pkt->body);
 	}

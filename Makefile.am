@@ -5,7 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 bin_PROGRAMS = merlind
 
 merlinlibdir = $(pkglibdir)
-merlinlib_PROGRAMS = import showlog rename oconf
+merlinlib_PROGRAMS = import showlog rename oconf keygen
 merlinlib_SCRIPTS = install-merlin.sh
 bin_SCRIPTS = apps/op5
 
@@ -157,6 +157,10 @@ oconf_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 rename_SOURCES = $(app_sources) tools/rename.c $(db_wrap_sources)
 rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon $(GLIB_CFLAGS)
 rename_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
+
+keygen_SOURCES = tools/keygen.c
+keygen_CFLAGS = $(AM_CFLAGS)
+keygen_LDADD = -lsodium
 
 check_PROGRAMS = $(TESTS) test-dbwrap merlincat cukemerlin
 TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest importlogtest
