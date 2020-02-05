@@ -21,6 +21,7 @@ unsigned char encryption_key[crypto_secretbox_KEYBYTES];
 bool sodium_init_done = false;
 int encrypt_pkt(merlin_event * pkt);
 int decrypt_pkt(merlin_event * pkt);
+int open_encryption_key(void);
 
 static void node_log_info(const merlin_node *node, const merlin_nodeinfo *info)
 {
@@ -828,6 +829,29 @@ int node_recv(merlin_node *node)
 	return -1;
 }
 
+int open_encryption_key(void){
+	FILE *f;
+	size_t read;
+
+	f = fopen("/opt/monitor/op5/merlin/key", "w");
+	if (f == NULL) {
+		lerr("Failed to open encryption file for writing");
+		return -1;
+	}
+
+	read = fread(encryption_key, crypto_secretbox_KEYBYTES, 1, f);
+	if (read != 1) {
+		lerr("Could not read encryption key");
+		return -1;
+	}
+
+	if (fclose(f) != 0) {
+		printf("%s\n", "Failed open encryption file stream");
+		return -1;
+	}
+	return 0;
+}
+
 int encrypt_pkt(merlin_event * pkt) {
 	if (sodium_init_done == false) {
 		if (sodium_init() < 0) {
@@ -835,11 +859,10 @@ int encrypt_pkt(merlin_event * pkt) {
 			lwarn("sodium_init failed\n");
 			return -1;
 		} else {
-			FILE *f;
 			sodium_init_done = true;
-			f = fopen("/opt/monitor/op5/merlin/key", "r");
-			fscanf(f, "%s", encryption_key);
-			fclose(f);
+			if (open_encryption_key() == -1) {
+				return -1;
+			}
 		}
 	}
 
@@ -869,11 +892,10 @@ int decrypt_pkt(merlin_event * pkt) {
 			lerr("sodium_init failed\n");
 			return -1;
 		} else {
-			FILE *f;
 			sodium_init_done = true;
-			f = fopen("/opt/monitor/op5/merlin/key", "r");
-			fscanf(f, "%s", encryption_key);
-			fclose(f);
+			if (open_encryption_key() == -1) {
+				return -1;
+			}
 		}
 	}
 
