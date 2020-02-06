@@ -11,14 +11,14 @@ def cmd_generate(args):
 	This key can be used to encrypt communication with Merlin.
 	"""
 
-        if os.path.isfile('/opt/monitor/op5/merlin/key'):
-            print 'File already exists. Key will not be generated.'
-	    sys.exit(1)
-
+	if os.path.isfile('/opt/monitor/op5/merlin/key'):
+		print 'File already exists. Key will not be generated.'
+		sys.exit(1)
 
 	p = sp.Popen(['/usr/lib64/merlin/keygen'], stdout=sp.PIPE, stderr=sp.PIPE)
+	p.wait()
 	if p.returncode != 0:
-		printf 'Key generation failed'
+		print 'Key generation failed'
 		sys.exit(1)
 	else:
-		printf 'Key generated and saved at /op5/monitor/op5/merlin/key'
+		print 'Key generated and saved at /op5/monitor/op5/merlin/key'

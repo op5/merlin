@@ -16,6 +16,7 @@ mon_SCRIPTS = \
 	apps/libexec/db.py \
 	apps/libexec/ecmd.py \
 	apps/libexec/log.py \
+	apps/libexec/merlinkeygen.py \
 	apps/libexec/node.py \
 	apps/libexec/node.tree.php \
 	apps/libexec/oconf.fetch.sh \
