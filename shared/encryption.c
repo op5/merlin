@@ -68,7 +68,7 @@ int decrypt_pkt(merlin_event * pkt, merlin_node * sender) {
 		return -1;
 	}
 
-	if (crypto_box_open_detached((unsigned char *)pkt->body, (const unsigned char *)pkt->body, pkt->hdr.authtag, pkt->hdr.len, pkt->hdr.nonce, recv->sharedkey) != 0) {
+	if (crypto_box_open_detached_afternm((unsigned char *)pkt->body, (const unsigned char *)pkt->body, pkt->hdr.authtag, pkt->hdr.len, pkt->hdr.nonce, recv->sharedkey) != 0) {
 			lerr("Encrypted message forged!\n");
 			return -1;
 	}
