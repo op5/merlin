@@ -507,6 +507,11 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 				cfg_error(c,v, "Could not open publickey: %s\n",
 						v->value);
 			}
+			// pre-calculate key
+			if (crypto_box_beforenm(node->sharedkey, node->pubkey,
+                        ipc.privkey) != 0) {
+				cfg_error(c,v, "Could not pre-calculated shared key\n");
+			}
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");

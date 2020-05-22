@@ -255,6 +255,7 @@ struct merlin_node {
 	bool encrypted;
  	unsigned char pubkey[crypto_box_PUBLICKEYBYTES];
 	unsigned char privkey[crypto_box_SECRETKEYBYTES];
+	unsigned char sharedkey[crypto_box_BEFORENMBYTES];
 };
 
 #define node_table noc_table

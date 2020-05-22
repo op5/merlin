@@ -55,7 +55,7 @@ int encrypt_pkt(merlin_event * pkt, merlin_node * recv) {
 
 	randombytes_buf(pkt->hdr.nonce, sizeof(pkt->hdr.nonce));
 
-	if (crypto_box_detached((unsigned char *)pkt->body, pkt->hdr.authtag, (unsigned char *)pkt->body, pkt->hdr.len, pkt->hdr.nonce, recv->pubkey, ipc.privkey) != 0) {
+	if (crypto_box_detached_afternm((unsigned char *)pkt->body, pkt->hdr.authtag, (unsigned char *)pkt->body, pkt->hdr.len, pkt->hdr.nonce, recv->sharedkey) != 0) {
 		lerr("could not encrypt msg!\n");
 		return -1;
 	}
