@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <sodium.h>
 #include <stdbool.h>
+#include <time.h>
 
 merlin_node **noc_table, **poller_table, **peer_table;
 
@@ -843,6 +844,8 @@ int node_recv(merlin_node *node)
  */
 int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 {
+	clock_t begin = clock();
+	clock_t end;
 	merlin_event *pkt = (merlin_event *)data;
 	merlin_event *encrypted_pkt = NULL;
 	int sent, sd = 0;
@@ -882,8 +885,22 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 
 	/* success. Should be the normal case */
 	if (sent == (int)len) {
+		double time_spent;
 		node->stats.bytes.sent += sent;
 		node->last_action = node->last_sent = time(NULL);
+		end = clock();
+		time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+		if (node->encrypted) {
+			FILE *fp;
+			fp = fopen("/tmp/send_encrypted.log", "a");
+   			fprintf(fp, "\n%f", time_spent);
+   			fclose(fp);
+		} else if (node != &ipc) {
+			FILE *fp;
+			fp = fopen("/tmp/send_unencrypted.log", "a");
+   			fprintf(fp, "\n%f", time_spent);
+   			fclose(fp);
+		}
 		return sent;
 	}
 
