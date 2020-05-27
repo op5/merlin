@@ -844,8 +844,8 @@ int node_recv(merlin_node *node)
  */
 int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 {
-	clock_t begin = clock();
-	clock_t end;
+	struct timespec start, end;
+	clock_gettime(CLOCK_REALTIME, &start);
 	merlin_event *pkt = (merlin_event *)data;
 	merlin_event *encrypted_pkt = NULL;
 	int sent, sd = 0;
@@ -888,17 +888,18 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 		double time_spent;
 		node->stats.bytes.sent += sent;
 		node->last_action = node->last_sent = time(NULL);
-		end = clock();
-		time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+		clock_gettime(CLOCK_REALTIME, &end);
+		time_spent = (end.tv_sec - start.tv_sec) +
+			(end.tv_nsec - start.tv_nsec) / 1000000000.0;
 		if (node->encrypted) {
 			FILE *fp;
 			fp = fopen("/tmp/send_encrypted.log", "a");
-   			fprintf(fp, "\n%f", time_spent);
+   			fprintf(fp, "time_spent: %f\n", time_spent);
    			fclose(fp);
 		} else if (node != &ipc) {
 			FILE *fp;
 			fp = fopen("/tmp/send_unencrypted.log", "a");
-   			fprintf(fp, "\n%f", time_spent);
+   			fprintf(fp, "time_spent: %f\n", time_spent);
    			fclose(fp);
 		}
 		return sent;
