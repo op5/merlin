@@ -33,17 +33,20 @@ static merlin_node *find_node(struct sockaddr_in *sain)
 		merlin_node *node = node_table[i];
 		unsigned short source_port = ntohs(sain->sin_port);
 		unsigned short in_port = net_source_port(node);
-		ldebug("FINDNODE: node->sain.sin_addr.s_addr: %d", node->sain.sin_addr.s_addr);
-		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr) {
-			if (source_port == in_port) {
-				/* perfect match */
-				ldebug("Inbound connection matches %s exactly (%s:%d)",
-				       node->name, inet_ntoa(sain->sin_addr), in_port);
-				return node;
-			}
+		ldebug("FINDNODE: node->sain.sin_addr.s_addr: %d, name: %s", node->sain.sin_addr.s_addr, node->name);
+		/* if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr) { */
+		/* 	if (source_port == in_port) { */
+		/* 		/1* perfect match *1/ */
+		/* 		ldebug("Inbound connection matches %s exactly (%s:%d)", */
+		/* 		       node->name, inet_ntoa(sain->sin_addr), in_port); */
+		/* 		return node; */
+		/* 	} */
+		/* if (!first && !(node->flags & MERLIN_NODE_FIXED_SRCPORT)) */
+		/* 		first = node; */
 
-			if (!first && !(node->flags & MERLIN_NODE_FIXED_SRCPORT))
-				first = node;
+		if (node != &ipc) {
+			ldebug("FINDNODE: return node: %s", node->name);
+			return node;
 		}
 	}
 

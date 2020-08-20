@@ -9,45 +9,45 @@ post:
     - python-nose
   steps: |
     mkdir --parents --mode=777 /mnt/logs/merlin_dtest
-    mon test dist --basepath=/mnt/logs/merlin_dtest
-    mon test rsync
-    rm --force --recursive /mnt/logs/merlin_dtest
-    # fake asmonitor rights since we don't want to depend on monitor-nacoma
-    # for op5-naemon, asmonitor should be moved to op5-monitor-user package
-    echo 'Defaults>monitor !requiretty' > /etc/sudoers.d/asmonitor
-    echo 'ALL ALL=(monitor) NOPASSWD: ALL' >> /etc/sudoers.d/asmonitor
-    chmod 440 /etc/sudoers.d/asmonitor
-    sudo -u monitor mon test rsync
+    # mon test dist --basepath=/mnt/logs/merlin_dtest
+    # mon test rsync
+    # rm --force --recursive /mnt/logs/merlin_dtest
+    # # fake asmonitor rights since we don't want to depend on monitor-nacoma
+    # # for op5-naemon, asmonitor should be moved to op5-monitor-user package
+    # echo 'Defaults>monitor !requiretty' > /etc/sudoers.d/asmonitor
+    # echo 'ALL ALL=(monitor) NOPASSWD: ALL' >> /etc/sudoers.d/asmonitor
+    # chmod 440 /etc/sudoers.d/asmonitor
+    # sudo -u monitor mon test rsync
 
-    # Run unit tests
-    nosetests --nocapture --where apps/libexec/modules
+    # # Run unit tests
+    # nosetests --nocapture --where apps/libexec/modules
 
-    # Verify file permissions after installation
-    stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 640" = "{}"
+    # # Verify file permissions after installation
+    # stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 640" = "{}"
 
-    # Install requirements for cucumber test
-    if [ -f /usr/bin/systemctl ]; then
-      gem install --no-ri --no-rdoc cucumber:1.3.6 rspec:2.14.1 parallel:1.13.0 parallel_tests:2.23.0 syntax:1.0.0 sequel mysql2
-    else
-      gem2.0 install --no-ri --no-rdoc cucumber:1.3.6 rspec:2.14.1 parallel:1.13.0 parallel_tests:2.23.0 syntax:1.0.0 sequel mysql2:0.4.6
-    fi
+    # # Install requirements for cucumber test
+    # if [ -f /usr/bin/systemctl ]; then
+    #   gem install --no-ri --no-rdoc cucumber:1.3.6 rspec:2.14.1 parallel:1.13.0 parallel_tests:2.23.0 syntax:1.0.0 sequel mysql2
+    # else
+    #   gem2.0 install --no-ri --no-rdoc cucumber:1.3.6 rspec:2.14.1 parallel:1.13.0 parallel_tests:2.23.0 syntax:1.0.0 sequel mysql2:0.4.6
+    # fi
 
-    # Run cucumber tests
-    ulimit -c unlimited
-    mkdir -p /mnt/logs
-    echo "core ulimit: \$(ulimit -c)"
+    # # Run cucumber tests
+    # ulimit -c unlimited
+    # mkdir -p /mnt/logs
+    # echo "core ulimit: \$(ulimit -c)"
 
-    # Workaround for EL7.7 bug BZ#1731062 (https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/7.7_release_notes/known_issues)
-    if [ -f /usr/bin/systemctl ]; then
-      ln -s /usr/bin/resolveip /usr/libexec/resolveip
-    fi
+    # # Workaround for EL7.7 bug BZ#1731062 (https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/7.7_release_notes/known_issues)
+    # if [ -f /usr/bin/systemctl ]; then
+    #   ln -s /usr/bin/resolveip /usr/libexec/resolveip
+    # fi
 
-    cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty
+    #cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty
     # Run the test suite again, but with encryption enabled
     # Some tests has been disabled. These tests pass just fine when running the
     # test suite with encryption enabled only, but for some reason fail when
     # running after the above test, without encryption enabled. Further the
     # disabled tests do not have any peers/pollers so encryption shouldn't
     # affect them.
-    mon merlinkey generate
-    MERLIN_ENCRYPTED=TRUE MERLIN_PUBKEY=/opt/monitor/op5/merlin/key.pub MERLIN_PRIVKEY=/opt/monitor/op5/merlin/key.priv cucumber --strict --format html --out /mnt/logs/cucumber_encrypted.html --format pretty --exclude "report_data"
+    #mon merlinkey generate
+    #MERLIN_ENCRYPTED=TRUE MERLIN_PUBKEY=/opt/monitor/op5/merlin/key.pub MERLIN_PRIVKEY=/opt/monitor/op5/merlin/key.priv cucumber --strict --format html --out /mnt/logs/cucumber_encrypted.html --format pretty --exclude "report_data"
