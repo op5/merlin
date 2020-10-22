@@ -18,6 +18,7 @@ merlin_node **noc_table, **poller_table, **peer_table;
 
 static int num_selections;
 static node_selection *selection_table;
+unsigned int uuid_nodes = 0;
 
 static void node_log_info(const merlin_node *node, const merlin_nodeinfo *info)
 {
@@ -522,6 +523,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			if (!valid_uuid(v->value)) {
 				cfg_error(c,v, "UUID must be exactly %d characters\n", UUID_SIZE);
 			}
+			uuid_nodes++;
 			strcpy(node->uuid, v->value);
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {

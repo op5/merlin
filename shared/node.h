@@ -264,6 +264,7 @@ struct merlin_node {
 #define node_table noc_table
 extern merlin_node **noc_table, **peer_table, **poller_table;
 extern merlin_nodeinfo *self;
+extern unsigned int uuid_nodes;
 
 #define num_masters self->configured_masters
 #define num_peers self->configured_peers
