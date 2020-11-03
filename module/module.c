@@ -35,6 +35,8 @@ struct dlist_entry *expired_events;
 static struct dlist_entry **expired_hosts;
 static struct dlist_entry **expired_services;
 
+char * cluster_update = NULL;
+
 /** code start **/
 
 /*
@@ -57,7 +59,6 @@ struct merlin_notify_stats merlin_notify_stats[9][2][2];
  * See grok_module_compound() for further details
  */
 static uint32_t event_mask;
-
 
 /*
  * this removes the necessity for linking the
@@ -372,6 +373,7 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		}
 		if (node_mconf_cmp(node, info)) {
 			node_disconnect(node, "Incompatible cluster configuration");
+			update_cluster_config();
 			return;
 		}
 		if ((ret = node_oconf_cmp(node, info))) {
@@ -1114,6 +1116,10 @@ static void grok_module_compound(struct cfg_comp *comp)
 			}
 			continue;
 		}
+		if (!strcmp(v->key, "cluster_update")) {
+			cluster_update = strdup(v->value);
+			continue;
+		}
 
 		if (grok_common_var(comp, v))
 			continue;
@@ -1122,7 +1128,7 @@ static void grok_module_compound(struct cfg_comp *comp)
 		if (ipc_grok_var(v->key, v->value))
 			continue;
 
-		cfg_error(comp, comp->vlist[i], "Unknown variable");
+		cfg_error(comp, comp->vlist[i], "1Unknown variable");
 	}
 
 	/* remove the ignored events from the handled ones */
