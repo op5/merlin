@@ -372,8 +372,15 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 			return;
 		}
 		if (node_mconf_cmp(node, info)) {
+			/* We send a ctrl active before we disconnect so that passive
+			 * pollers also understand they have an incompatible cluster config
+			 * and can therefore trigger cluster updates
+			 */
+			node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info);
+		        if (cluster_update != NULL) {
+				update_cluster_config();
+			}
 			node_disconnect(node, "Incompatible cluster configuration");
-			update_cluster_config();
 			return;
 		}
 		if ((ret = node_oconf_cmp(node, info))) {
