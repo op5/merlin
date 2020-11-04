@@ -372,14 +372,10 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 			return;
 		}
 		if (node_mconf_cmp(node, info)) {
-			/* We send a ctrl active before we disconnect so that passive
+			/* We send a ctrl command before we disconnect so that passive
 			 * pollers also understand they have an incompatible cluster config
-			 * and can therefore trigger cluster updates
 			 */
-			node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info);
-		        if (cluster_update != NULL) {
-				update_cluster_config();
-			}
+			node_send_ctrl_active(node, CTRL_INVALID_CLUSTER, &ipc.info);
 			node_disconnect(node, "Incompatible cluster configuration");
 			return;
 		}
@@ -398,6 +394,13 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
 			ldebug("NODESTATE: %s node %s just marked as connected after CTRL_ACTIVE",
 				   node_type(node), node->name);
+		}
+		break;
+	case CTRL_INVALID_CLUSTER:
+		lwarn("Node %s has signalled that the cluter config is invalid", node->name);
+		if (cluster_update != NULL) {
+			ldebug("Running cluster update command");
+			update_cluster_config();
 		}
 		break;
 	case CTRL_STALL:
