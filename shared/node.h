@@ -58,9 +58,9 @@
 #define CTRL_STALL    		5  /* (deprecated) signal that we can't accept events for a while */
 #define CTRL_RESUME   		6  /* (deprecated) now we can accept events again */
 #define CTRL_STOP     		7  /* exit() immediately (only accepted via ipc) */
-#define RUNCMD_CMD    		8  /* Used for requesting a command to be run */
-#define RUNCMD_RESP   		9  /* response of a command execution */
-#define CTRL_INVALID_CLUSTER	10 /* signals to a node that it's cluster cfg is invalid */
+#define CTRL_INVALID_CLUSTER	8 /* signals to a node that it's cluster cfg is invalid */
+#define RUNCMD_CMD    		9  /* Used for requesting a command to be run */
+#define RUNCMD_RESP   		10  /* response of a command execution */
 /* the following magic entries can be used for the "code" entry */
 #define MAGIC_NONET 0xffff /* don't forward to the network */
 
@@ -263,6 +263,7 @@ struct merlin_node {
 	unsigned char privkey[crypto_box_SECRETKEYBYTES];
 	unsigned char sharedkey[crypto_box_BEFORENMBYTES];
 	char uuid[UUID_SIZE + 1]; /* 36 plus null terminator */
+	bool incompatible_cluster_config;
 };
 
 struct merlin_runcmd {
