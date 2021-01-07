@@ -276,3 +276,30 @@ static void handle_cluster_update_finished(wproc_result *wpres, void *arg, int f
 void update_cluster_config() {
 	wproc_run_callback(cluster_update, 60, handle_cluster_update_finished, NULL, 0);
 }
+
+static void handle_auto_delete_finished(wproc_result *wpres, void *arg, int flags) {
+	log_child_result(wpres, "Auto delete");
+}
+
+void auto_delete_node(merlin_node * node) {
+	char cmd[512];
+	int ret;
+	linfo("Attempting to delete node: %s", node->name);
+	ret = snprintf(cmd, 512, "mon node remove %s", node->name);
+	if (ret < 0) {
+		lwarn("Couldn't auto_delete node: %s. Return value negative", node->name);		
+	} else if (ret >= 512) {
+		lwarn("Couldn't auto_delete node: %s. Buffer too small", node->name);		
+	} else {
+		wproc_run_callback(cmd, 60, handle_auto_delete_finished, NULL, 0);
+	}
+}
+
+static void handle_mon_restart_finished(wproc_result *wpres, void *arg, int flags) {
+	log_child_result(wpres, "mon restart");
+}
+
+void mon_restart(void) {
+	linfo("Executing mon restart");
+	wproc_run_callback("sudo mon restart", 600, handle_mon_restart_finished, NULL, 0);
+}
