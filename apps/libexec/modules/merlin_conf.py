@@ -58,7 +58,7 @@ class merlin_node:
 		oconf_vars = {}
 		f.write("%s %s {\n" % (self.ntype, self.name))
 
-		valid_vars = ['address', 'port', 'connect', 'notifies', 'uuid', 'publickey']
+		valid_vars = ['address', 'port', 'connect', 'notifies', 'uuid', 'publickey', 'auto_delete']
 		if self.ntype == 'poller':
 			valid_vars.append('hostgroup')
 			valid_vars.append('hostgroups')
