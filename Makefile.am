@@ -218,7 +218,7 @@ endif
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)/config
 
-data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py: % : %.in
+merlind.service data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py: % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@PYTHON[@],$(PYTHON),g' \
 		-e 's,@pkgconfdir[@],$(pkgconfdir),g' \
@@ -257,7 +257,8 @@ tests/merlincat/nebev-col2key.c: tests/merlincat/nebev-col2key.gperf
 tests/merlincat/kvvec2nebev.c: tests/merlincat/nebev-col2key.c
 
 BUILT_SOURCES = $(GENERATED_NEBEV) tests/merlincat/nebev-col2key.c \
-	 apps/libexec/restart.sh apps/libexec/oconf.py apps/mon.py
+	 apps/libexec/restart.sh apps/libexec/oconf.py apps/mon.py \
+	 merlind.service
 CLEANFILES = $(BUILT_SOURCES)
 
 merlincat_SOURCES = tests/merlincat/merlincat.c \
