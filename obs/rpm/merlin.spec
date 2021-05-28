@@ -293,8 +293,6 @@ fi
 
 %post -n monitor-merlin
 %create_service_control_function
-# TODO Fix path
-sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
 service_control_function restart naemon || :
 service_control_function restart nrpe || :
 
