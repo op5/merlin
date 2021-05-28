@@ -180,7 +180,7 @@ BuildRequires: diffutils
 Some additional test files for merlin
 
 %prep
-%setup -q
+%setup -q -n monitor-%{name}-%{version}
 
 %build
 echo %{version} > .version_number
