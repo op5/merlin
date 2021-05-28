@@ -31,7 +31,7 @@ Version: 2021.4
 Release: 0
 License: GPLv2
 URL: https://github.com/ITRS-Group/monitor-merlin/
-Source0: merlin-%{version}.tar.gz
+Source0: monitor-merlin-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}
 Requires: libaio
 Requires: merlin-apps >= %version
