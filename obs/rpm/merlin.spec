@@ -32,7 +32,7 @@ Release: 0
 License: GPLv2
 URL: https://github.com/ITRS-Group/monitor-merlin/
 Source0: monitor-merlin-%{version}.tar.gz
-BuildRoot: %{_tmppath}/%{name}-%{version}
+BuildRoot: %{_tmppath}/monitor-%{name}-%{version}
 Requires: libaio
 Requires: merlin-apps >= %version
 Requires: mariadb
