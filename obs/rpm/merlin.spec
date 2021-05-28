@@ -35,7 +35,7 @@ Source0: monitor-merlin-%{version}.tar.gz
 BuildRoot: %{_tmppath}/monitor-%{name}-%{version}
 Requires: libaio
 Requires: merlin-apps >= %version
-Requires: mariadb
+Requires: mariadb-server
 Requires: glib2
 Requires: nrpe
 Requires: libdbi
@@ -90,7 +90,7 @@ slim version that installs fewer dependencies.
 %package -n monitor-merlin
 Summary: A Nagios module designed to communicate with the Merlin daemon
 Requires: naemon-core, merlin = %version-%release
-Requires: mariadb
+Requires: mariadb-server
 Obsoletes: monitor-merlin-slim
 
 %description -n monitor-merlin
@@ -112,7 +112,7 @@ merlin daemon, which then takes appropriate action.
 %package apps
 Summary: Applications used to set up and aid a merlin/ninja installation
 Requires: rsync
-Requires: mariadb
+Requires: mariadb-server
 %if 0%{?suse_version}
 Requires: libdbi1
 Requires: python-mysql
