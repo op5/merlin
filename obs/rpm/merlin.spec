@@ -214,6 +214,7 @@ cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 python2 tests/pyunit/test_log.py --verbose
 python2 tests/pyunit/test_oconf.py --verbose
 
+mkdir -p %buildroot%_localstatedir/merlin
 
 %post
 %create_service_control_function
@@ -292,6 +293,7 @@ fi
 
 %post -n monitor-merlin
 %create_service_control_function
+# TODO Fix path
 sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
 service_control_function restart naemon || :
 service_control_function restart nrpe || :
