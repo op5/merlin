@@ -322,7 +322,7 @@ service_control_function restart nrpe || :
 %defattr(-,root,root)
 %_libdir/merlin/merlin.*
 %mod_path/merlin.so
-%attr(-, %daemon_user, %daemon_group) /opt/monitor/etc/mconf/merlin.cfg
+%attr(-, %daemon_user, %daemon_group) %naemon_confdir/module-conf.d/merlin.cfg
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/log/merlin
 %attr(0440, root, root) %{_sysconfdir}/sudoers.d/merlin
