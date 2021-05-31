@@ -1,16 +1,8 @@
 %define mod_path /etc/merlin
 
-# function service_control_function ("action", "service")
-# start/stop/restart a service
-%define create_service_control_function function service_control_function () { service $2 $1; };
 %define init_scripts --with-initdirectory=%_sysconfdir/init.d --with-initscripts=data/merlind
 %if 0%{?suse_version}
-%define mysqld mysql
-%define daemon_user naemon
-%define daemon_group naemon
-%endif
-%if 0%{?rhel} == 6
-%define mysqld mysqld
+%define mysqld mariadb
 %define daemon_user naemon
 %define daemon_group naemon
 %endif
@@ -19,8 +11,6 @@
 %define daemon_user naemon
 %define daemon_group naemon
 %define init_scripts %{nil}
-# re-define service_control_function to use systemctl
-%define create_service_control_function function service_control_function () { systemctl $1 $2; };
 %endif
 %define operator_group mon_operators
 %define naemon_confdir %_sysconfdir/naemon/
@@ -41,14 +31,10 @@ Requires: nrpe
 Requires: libdbi
 Requires: libdbi-dbd-mysql
 Requires: libsodium
+Requires: systemd
 BuildRequires: libsodium-devel
-%if 0%{?rhel} >= 7
-BuildRequires: systemd
 BuildRequires: mariadb-devel
 Obsoletes: merlin-slim
-%else
-BuildRequires: mysql-devel
-%endif
 BuildRequires: naemon-devel
 BuildRequires: python2
 BuildRequires: gperf
@@ -64,7 +50,6 @@ The merlin daemon is a multiplexing event-transport program designed to
 link multiple Nagios instances together. It can also inject status
 data into a variety of databases, using libdbi.
 
-%if 0%{?rhel} >= 7
 %package slim
 Summary: Slim version of the merlin daemon
 Requires: libaio
@@ -85,12 +70,12 @@ The merlin daemon is a multiplexing event-transport program designed to
 link multiple Nagios instances together. It can also inject status
 data into a variety of databases, using libdbi. This version of the package is
 slim version that installs fewer dependencies.
-%endif
 
 %package -n monitor-merlin
 Summary: A Nagios module designed to communicate with the Merlin daemon
 Requires: naemon-core, merlin = %version-%release
 Requires: mariadb-server
+Requires: systemd
 Obsoletes: monitor-merlin-slim
 
 %description -n monitor-merlin
@@ -98,7 +83,6 @@ monitor-merlin is an event broker module running inside Nagios. Its
 only purpose in life is to send events from the Nagios core to the
 merlin daemon, which then takes appropriate action.
 
-%if 0%{?rhel} >= 7
 %package -n monitor-merlin-slim
 Summary: A Nagios module designed to communicate with the Merlin daemon
 Requires: naemon-slim, merlin-slim = %version-%release
@@ -107,7 +91,6 @@ Requires: naemon-slim, merlin-slim = %version-%release
 monitor-merlin is an event broker module running inside Nagios. Its
 only purpose in life is to send events from the Nagios core to the
 merlin daemon, which then takes appropriate action.
-%endif
 
 %package apps
 Summary: Applications used to set up and aid a merlin/ninja installation
@@ -125,6 +108,7 @@ Requires: MySQL-python
 Requires: libdbi
 %endif
 Obsoletes: merlin-apps-slim
+requires: systemd
 
 %description apps
 This package contains standalone applications required by Ninja and
@@ -139,7 +123,6 @@ management and allround tasks regarding administering a distributed
 network monitoring setup.
 
 
-%if 0%{?rhel} >= 7
 %package apps-slim
 Summary: Applications used to set up and aid a merlin/ninja installation
 Requires: rsync
@@ -157,7 +140,6 @@ sha1 checksums and the latest changed such file, as well as
 preparing object configuration for pollers, helping with ssh key
 management and allround tasks regarding administering a distributed
 network monitoring setup.
-%endif
 
 %package test
 Summary: Test files for merlin
@@ -207,7 +189,6 @@ cp -r apps/tests %buildroot/usr/share/merlin/app-tests
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 
-# TODO: Check if systemd
 %{__install} -D -m 644 merlind.service %{buildroot}%{_unitdir}/merlind.service
 
 %check
@@ -217,22 +198,16 @@ python2 tests/pyunit/test_oconf.py --verbose
 mkdir -p %buildroot%_localstatedir/merlin
 
 %post
-%create_service_control_function
 # we must stop the merlin deamon so it doesn't interfere with any
 # database upgrades, logfile imports and whatnot
-service_control_function stop merlind > /dev/null || :
+systemctl stop merlind > /dev/null || :
 
 # Verify that mysql-server is installed and running before executing sql scripts
-# TODO: fix for non-rhel
-%if 0%{?rhel} >= 7
 systemctl is-active %mysqld 2&>1 >/dev/null
-%else
-service %mysqld status 2&>1 >/dev/null
-%endif
 
 if [ $? -gt 0 ]; then
   echo "Attempting to start %mysqld..."
-  service_control_function start %mysqld
+  systemctl start %mysqld
   if [ $? -gt 0 ]; then
     echo "Abort: Failed to start %mysqld."
     exit 1
@@ -245,13 +220,8 @@ if ! mysql -umerlin -pmerlin merlin -e 'show tables' > /dev/null 2>&1; then
 fi
 %_libdir/merlin/install-merlin.sh
 
-#TODO: check for systemd instead
-%if 0%{?rhel} >= 7
 systemctl daemon-reload
 systemctl enable merlind.service
-%else
-/sbin/chkconfig --add merlind || :
-%endif
 
 # If mysql-server is running _or_ this is an upgrade
 # we import logs
@@ -272,29 +242,26 @@ chown -R %daemon_user:%daemon_group %_localstatedir/cache/merlin
 
 # restart all daemons
 for daemon in merlind nrpe; do
-    service_control_function restart $daemon
+    systemctl restart $daemon
 done
 
 # Create operator group for use in sudoers
 getent group %operator_group > /dev/null || groupadd %operator_group
 
 %preun -n monitor-merlin
-%create_service_control_function
 if [ $1 -eq 0 ]; then
-    service_control_function stop merlind || :
+    systemctl stop merlind || :
 fi
 
 %postun -n monitor-merlin
-%create_service_control_function
 if [ $1 -eq 0 ]; then
-    service_control_function restart monitor || :
-    service_control_function restart nrpe || :
+    systemctl restart monitor || :
+    systemctl restart nrpe || :
 fi
 
 %post -n monitor-merlin
-%create_service_control_function
-service_control_function restart naemon || :
-service_control_function restart nrpe || :
+systemctl restart naemon || :
+systemctl restart nrpe || :
 
 %files
 %defattr(-,root,root)
@@ -306,7 +273,6 @@ service_control_function restart nrpe || :
 %_libdir/merlin/install-merlin.sh
 %_sysconfdir/logrotate.d/merlin
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
-# TODO check for systemd?
 %{_unitdir}/merlind.service
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin
 %attr(775, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin/binlogs
@@ -345,7 +311,6 @@ service_control_function restart nrpe || :
 %exclude %_libdir/merlin/mon/test.py*
 %exclude %_libdir/merlin/merlin.*
 
-%if 0%{?rhel} >= 7
 %files slim
 %defattr(-,root,root)
 %attr(660, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
@@ -383,7 +348,6 @@ service_control_function restart nrpe || :
 
 %exclude %_libdir/merlin/mon/test.py*
 %exclude %_libdir/merlin/merlin.*
-%endif
 
 %files test
 %defattr(-,root,root)
