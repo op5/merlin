@@ -25,6 +25,8 @@ Source0: monitor-merlin-%{version}.tar.gz
 BuildRoot: %{_tmppath}/monitor-%{name}-%{version}
 Requires: libaio
 Requires: merlin-apps >= %version
+Requires: monitor-merlin
+Requires: naemon-core
 Requires: mariadb-server
 Requires: glib2
 Requires: nrpe
