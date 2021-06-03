@@ -143,26 +143,6 @@ preparing object configuration for pollers, helping with ssh key
 management and allround tasks regarding administering a distributed
 network monitoring setup.
 
-%package test
-Summary: Test files for merlin
-Requires: naemon-livestatus
-Requires: naemon-core
-Requires: merlin merlin-apps monitor-merlin
-# TODO: Fix dependency
-#Requires: monitor-testthis
-Requires: abrt-cli
-Requires: libyaml
-Requires: mariadb-devel
-Requires: ruby-devel
-Requires: python2-nose
-# Required development tools for building gems
-Requires: make automake gcc
-Requires: redhat-rpm-config
-BuildRequires: diffutils
-
-%description test
-Some additional test files for merlin
-
 %prep
 %setup -q -n monitor-%{name}-%{version}
 
@@ -350,12 +330,6 @@ systemctl restart nrpe || :
 
 %exclude %_libdir/merlin/mon/test.py*
 %exclude %_libdir/merlin/merlin.*
-
-%files test
-%defattr(-,root,root)
-%_libdir/merlin/mon/test.py*
-%_bindir/cukemerlin
-/usr/share/merlin/app-tests/
 
 %clean
 rm -rf %buildroot
