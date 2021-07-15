@@ -216,6 +216,11 @@ int ipc_grok_var(char *var, char *val)
 		return 1;
 	}
 
+	if ((!strcmp(var, "ipc_blocked_hostgroups"))) {
+		ipc.ipc_blocked_hostgroups = strdup(val);
+		return 1;
+	}
+
 	if (!strcmp(var, "ipc_binlog")) {
 		lwarn("%s is deprecated. The name will always be computed.", var);
 		lwarn("   Set binlog_dir to control where the file will be created");

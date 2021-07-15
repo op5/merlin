@@ -1439,3 +1439,54 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 
 	return node_oconf_cmp(node, (merlin_nodeinfo *)pkt->body) ? ESYNC_ECONFTIME : 0;
 }
+
+
+bool node_blocked_hostgroup(const merlin_node *node, void * data, int type) {
+	struct host *hst = NULL;
+	struct service * svc = NULL;
+	objectlist * hostgroups_list;
+	nebstruct_service_check_data * svc_ds;
+	nebstruct_host_check_data * hst_ds;
+
+	if (node != &ipc) {
+		return false;
+	}
+
+	if (node->ipc_blocked_hostgroups == NULL) {
+		return false;
+	}
+
+	switch (type) {
+	case NEBTYPE_SERVICECHECK_ASYNC_PRECHECK:
+		svc_ds = (nebstruct_service_check_data *)data;
+		svc = (struct service *)svc_ds->object_ptr;
+		hst = svc->host_ptr;
+		break;
+
+	case NEBTYPE_HOSTCHECK_ASYNC_PRECHECK:
+	case NEBTYPE_HOSTCHECK_SYNC_PRECHECK:
+		hst_ds = (nebstruct_host_check_data *)data;
+		hst = (struct host *)hst_ds->object_ptr;
+		break;
+	default: 
+		return false;
+	}
+
+	if (hst == NULL) {
+		return false;
+	}
+
+	for (hostgroups_list = hst->hostgroups_ptr; hostgroups_list != NULL; hostgroups_list = hostgroups_list->next) {
+		hostgroup * hstgroup = hostgroups_list->object_ptr;
+		if (hstgroup == NULL) {
+			continue;
+		}
+		// Check if we found the hostgroup in the blocked_hostgroups str
+		if(strstr(node->ipc_blocked_hostgroups, hstgroup->group_name) != NULL) {
+			ldebug("Blocking check execution of %s;%s due to hostgroup: %s, being present in the ipc_blocked_hostgroups setting", hst->name, svc ? svc->description : "", hstgroup->group_name);
+			return true;
+		}
+	}
+
+	return false;
+}
